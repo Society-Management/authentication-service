@@ -1,5 +1,6 @@
 package com.societymanagement.authentication_service.utils;
 
+import com.societymanagement.authentication_service.entity.Role;
 import com.societymanagement.authentication_service.entity.Users;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -8,9 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -49,6 +48,11 @@ public class JwtUtils {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", u.getId());
         claims.put("societyId", u.getSocietyId());
+        claims.put("roles",
+                u.getRoles().stream()
+                        .map(Role::getRoleName)
+                        .collect(Collectors.toList())
+        );
         return createToken(claims, username);
     }
 
@@ -60,6 +64,19 @@ public class JwtUtils {
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 1 hour
                 .signWith(getSigningKey())
                 .compact();
+    }
+    public List<String> extractRoles(String token) {
+        Claims claims = extractAllClaims(token);
+        Object rolesObject = claims.get("roles");
+
+        if (rolesObject instanceof List<?>) {
+            return ((List<?>) rolesObject).stream()
+                    .filter(item -> item instanceof String)
+                    .map(String.class::cast)
+                    .collect(Collectors.toList());
+        }
+
+        return new ArrayList<>();
     }
 
     public boolean validateToken(String token) {
